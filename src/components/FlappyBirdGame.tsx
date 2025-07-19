@@ -74,63 +74,61 @@ export const FlappyBirdGame = () => {
       const buffer = audioContext.createBuffer(1, sampleRate * duration, sampleRate);
       const channelData = buffer.getChannelData(0);
 
-      // Generate a naughty child-like "Kusi" sound pattern
+      // Generate Jerry-style teasing "Kusi" sound pattern
       for (let i = 0; i < buffer.length; i++) {
         const t = i / sampleRate;
         
-        // Create a naughty child voice with playful pitch variations
         let freq1, freq2, freq3;
         let envelope = 0;
         
-        if (t < 0.35) {
-          // "Ku" part - higher pitched and playful
-          const kuProgress = t / 0.35;
-          freq1 = 500 + Math.sin(kuProgress * Math.PI * 3) * 150; // Playful vibrato
-          freq2 = 1000 + Math.sin(kuProgress * Math.PI * 4) * 100;
-          freq3 = 1500 + Math.sin(kuProgress * Math.PI * 5) * 80;
+        if (t < 0.4) {
+          // "Ku" part - Jerry's characteristic high-pitched start with downward slide
+          const kuProgress = t / 0.4;
           
-          // Naughty rising intonation for "Ku"
-          const pitch_bend = 1 + kuProgress * 0.3;
-          freq1 *= pitch_bend;
-          freq2 *= pitch_bend;
-          freq3 *= pitch_bend;
+          // Start high and slide down like Jerry's teasing tone
+          const pitch_slide = 1.0 - kuProgress * 0.3; // Slides down 30%
+          freq1 = (650 * pitch_slide) + Math.sin(kuProgress * Math.PI * 6) * 30; // Jerry's high pitch with vibrato
+          freq2 = (1300 * pitch_slide) + Math.sin(kuProgress * Math.PI * 8) * 25;
+          freq3 = (1950 * pitch_slide) + Math.sin(kuProgress * Math.PI * 10) * 20;
           
-          envelope = Math.sin(kuProgress * Math.PI) * 0.9 * (1 - kuProgress * 0.2);
-        } else if (t < 0.45) {
-          // Brief pause with slight giggle-like noise
-          envelope = 0.05 + Math.random() * 0.03;
-          freq1 = 600;
-          freq2 = 1200;
-          freq3 = 1800;
+          // Jerry's characteristic envelope - quick attack, sustained
+          envelope = kuProgress < 0.1 ? kuProgress * 10 : 0.85 * (1 - kuProgress * 0.2);
+        } else if (t < 0.5) {
+          // Brief pause - Jerry's timing
+          envelope = 0.02;
+          freq1 = 500;
+          freq2 = 1000;
+          freq3 = 1500;
         } else {
-          // "si" part - even more naughty with falling then rising pitch
-          const siProgress = (t - 0.45) / 0.35;
+          // "si" part - Jerry's signature upward inflection with smugness
+          const siProgress = (t - 0.5) / 0.3;
           
-          // Naughty "si" with characteristic child-like pitch pattern
-          const pitch_pattern = Math.sin(siProgress * Math.PI * 2) * 0.4 + siProgress * 0.6;
-          freq1 = 400 + pitch_pattern * 200 + Math.sin(siProgress * Math.PI * 8) * 50;
-          freq2 = 800 + pitch_pattern * 300 + Math.sin(siProgress * Math.PI * 10) * 40;
-          freq3 = 1200 + pitch_pattern * 400 + Math.sin(siProgress * Math.PI * 12) * 30;
+          // Jerry's characteristic upward sweep with attitude
+          const pitch_sweep = siProgress * 0.8 + Math.sin(siProgress * Math.PI * 3) * 0.2;
+          freq1 = 450 + pitch_sweep * 350; // Sweeps up like Jerry's taunting
+          freq2 = 900 + pitch_sweep * 500;
+          freq3 = 1350 + pitch_sweep * 650;
           
-          // Bratty ending with slight upturn
-          const bratty_upturn = siProgress > 0.7 ? Math.pow((siProgress - 0.7) / 0.3, 2) * 1.5 : 1;
-          freq1 *= bratty_upturn;
-          freq2 *= bratty_upturn;
-          freq3 *= bratty_upturn;
+          // Jerry's smug ending - gets stronger and more confident
+          envelope = Math.sin(siProgress * Math.PI) * 0.9 * (0.8 + siProgress * 0.4);
           
-          envelope = Math.sin(siProgress * Math.PI) * 0.8 * (1 + siProgress * 0.3);
+          // Add Jerry's characteristic nasal quality at the end
+          if (siProgress > 0.6) {
+            freq1 *= 1 + (siProgress - 0.6) * 0.5;
+            freq2 *= 1 + (siProgress - 0.6) * 0.3;
+          }
         }
         
-        // Mix the frequencies with child-like timbres and naughty character
-        const fundamental = Math.sin(2 * Math.PI * freq1 * t) * 0.5;
-        const harmonic2 = Math.sin(2 * Math.PI * freq2 * t) * 0.3;
-        const harmonic3 = Math.sin(2 * Math.PI * freq3 * t) * 0.2;
+        // Jerry's voice characteristics - nasal, bright, teasing
+        const fundamental = Math.sin(2 * Math.PI * freq1 * t) * 0.45;
+        const nasal_harmonic = Math.sin(2 * Math.PI * freq2 * t) * 0.35; // Jerry's nasal quality
+        const bright_harmonic = Math.sin(2 * Math.PI * freq3 * t) * 0.25; // Brightness
         
-        // Add some nasality and breathiness typical of naughty children
-        const nasal = Math.sin(2 * Math.PI * freq1 * 1.2 * t) * 0.15;
-        const breathy = (Math.random() - 0.5) * 0.08;
+        // Add Jerry's characteristic mouth noise and sassiness
+        const sassy_noise = Math.sin(2 * Math.PI * freq1 * 2.1 * t) * 0.1;
+        const mouse_squeakiness = (Math.random() - 0.5) * 0.05;
         
-        const sample = (fundamental + harmonic2 + harmonic3 + nasal + breathy) * envelope;
+        const sample = (fundamental + nasal_harmonic + bright_harmonic + sassy_noise + mouse_squeakiness) * envelope;
         
         channelData[i] = Math.max(-1, Math.min(1, sample));
       }
@@ -155,7 +153,7 @@ export const FlappyBirdGame = () => {
       const audioUrl = URL.createObjectURL(audioBlob);
       kushiAudioRef.current = new Audio(audioUrl);
       
-      toast.success('Naughty "Kusi" sound generated! 😈👶');
+      toast.success('Jerry-style teasing "Kusi" sound generated! 🐭😏');
     } catch (error) {
       console.error('Error generating Kusi sound:', error);
       toast.error('Failed to generate naughty voice, using fallback sound!');
