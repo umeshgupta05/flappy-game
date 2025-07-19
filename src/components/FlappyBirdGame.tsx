@@ -74,37 +74,65 @@ export const FlappyBirdGame = () => {
       const buffer = audioContext.createBuffer(1, sampleRate * duration, sampleRate);
       const channelData = buffer.getChannelData(0);
 
-      // Generate a cute "Kusi" sound pattern
+      // Generate a naughty child-like "Kusi" sound pattern
       for (let i = 0; i < buffer.length; i++) {
         const t = i / sampleRate;
         
-        // Create a baby-like voice pattern with multiple harmonics
-        const freq1 = 400 + Math.sin(t * 15) * 100; // Main pitch with vibrato
-        const freq2 = 800 + Math.sin(t * 20) * 80;  // Higher harmonic
-        const freq3 = 1200 + Math.sin(t * 25) * 60; // Even higher harmonic
+        // Create a naughty child voice with playful pitch variations
+        let freq1, freq2, freq3;
+        let envelope = 0;
         
-        // Envelope for "Ku-si" pattern
-        let envelope = 1;
-        if (t < 0.3) {
-          // "Ku" part
-          envelope = Math.sin(t * Math.PI / 0.3) * 0.8;
-        } else if (t < 0.4) {
-          // Brief pause
-          envelope = 0.1;
+        if (t < 0.35) {
+          // "Ku" part - higher pitched and playful
+          const kuProgress = t / 0.35;
+          freq1 = 500 + Math.sin(kuProgress * Math.PI * 3) * 150; // Playful vibrato
+          freq2 = 1000 + Math.sin(kuProgress * Math.PI * 4) * 100;
+          freq3 = 1500 + Math.sin(kuProgress * Math.PI * 5) * 80;
+          
+          // Naughty rising intonation for "Ku"
+          const pitch_bend = 1 + kuProgress * 0.3;
+          freq1 *= pitch_bend;
+          freq2 *= pitch_bend;
+          freq3 *= pitch_bend;
+          
+          envelope = Math.sin(kuProgress * Math.PI) * 0.9 * (1 - kuProgress * 0.2);
+        } else if (t < 0.45) {
+          // Brief pause with slight giggle-like noise
+          envelope = 0.05 + Math.random() * 0.03;
+          freq1 = 600;
+          freq2 = 1200;
+          freq3 = 1800;
         } else {
-          // "si" part
-          envelope = Math.sin((t - 0.4) * Math.PI / 0.4) * 0.6;
+          // "si" part - even more naughty with falling then rising pitch
+          const siProgress = (t - 0.45) / 0.35;
+          
+          // Naughty "si" with characteristic child-like pitch pattern
+          const pitch_pattern = Math.sin(siProgress * Math.PI * 2) * 0.4 + siProgress * 0.6;
+          freq1 = 400 + pitch_pattern * 200 + Math.sin(siProgress * Math.PI * 8) * 50;
+          freq2 = 800 + pitch_pattern * 300 + Math.sin(siProgress * Math.PI * 10) * 40;
+          freq3 = 1200 + pitch_pattern * 400 + Math.sin(siProgress * Math.PI * 12) * 30;
+          
+          // Bratty ending with slight upturn
+          const bratty_upturn = siProgress > 0.7 ? Math.pow((siProgress - 0.7) / 0.3, 2) * 1.5 : 1;
+          freq1 *= bratty_upturn;
+          freq2 *= bratty_upturn;
+          freq3 *= bratty_upturn;
+          
+          envelope = Math.sin(siProgress * Math.PI) * 0.8 * (1 + siProgress * 0.3);
         }
         
-        // Mix the frequencies with baby-like timbres
-        const sample = (
-          Math.sin(2 * Math.PI * freq1 * t) * 0.4 +
-          Math.sin(2 * Math.PI * freq2 * t) * 0.3 +
-          Math.sin(2 * Math.PI * freq3 * t) * 0.2 +
-          (Math.random() - 0.5) * 0.1 // Add slight noise for realism
-        ) * envelope;
+        // Mix the frequencies with child-like timbres and naughty character
+        const fundamental = Math.sin(2 * Math.PI * freq1 * t) * 0.5;
+        const harmonic2 = Math.sin(2 * Math.PI * freq2 * t) * 0.3;
+        const harmonic3 = Math.sin(2 * Math.PI * freq3 * t) * 0.2;
         
-        channelData[i] = sample;
+        // Add some nasality and breathiness typical of naughty children
+        const nasal = Math.sin(2 * Math.PI * freq1 * 1.2 * t) * 0.15;
+        const breathy = (Math.random() - 0.5) * 0.08;
+        
+        const sample = (fundamental + harmonic2 + harmonic3 + nasal + breathy) * envelope;
+        
+        channelData[i] = Math.max(-1, Math.min(1, sample));
       }
 
       // Create audio from buffer
@@ -127,10 +155,10 @@ export const FlappyBirdGame = () => {
       const audioUrl = URL.createObjectURL(audioBlob);
       kushiAudioRef.current = new Audio(audioUrl);
       
-      toast.success('Baby voice "Kusi" sound generated! 👶');
+      toast.success('Naughty "Kusi" sound generated! 😈👶');
     } catch (error) {
       console.error('Error generating Kusi sound:', error);
-      toast.error('Failed to generate baby voice, using fallback sound!');
+      toast.error('Failed to generate naughty voice, using fallback sound!');
     } finally {
       setIsLoadingSound(false);
     }
