@@ -36,7 +36,6 @@ export const FlappyBirdGame = () => {
   const [highScore, setHighScore] = useState(() => {
     return parseInt(localStorage.getItem('flappyBirdHighScore') || '0');
   });
-  const [apiKey, setApiKey] = useState('sk_a366f67995aa43b942f3ca27c29076a0209a6fcb24cf0344');
   const [isLoadingSound, setIsLoadingSound] = useState(false);
   
   const [bird, setBird] = useState<Bird>({ x: 150, y: GAME_HEIGHT / 2, velocity: 0 });
@@ -59,13 +58,8 @@ export const FlappyBirdGame = () => {
     img.src = '/lovable-uploads/bd09b71c-cd72-4f8d-bf5b-ad7618882730.png';
   }, []);
 
-  // Generate baby voice "Kusi" sound using ElevenLabs
+  // Generate baby voice "Kusi" sound using synthetic audio
   const generateKushiSound = useCallback(async () => {
-    if (!apiKey) {
-      toast.error('Please enter your ElevenLabs API key first!');
-      return;
-    }
-
     if (kushiAudioRef.current) {
       // Use cached audio if already generated
       return;
@@ -73,48 +67,117 @@ export const FlappyBirdGame = () => {
 
     setIsLoadingSound(true);
     try {
-      const response = await fetch('https://api.elevenlabs.io/v1/text-to-speech/pFZP5JQG7iQjIQuC4Bku', {
-        method: 'POST',
-        headers: {
-          'Accept': 'audio/mpeg',
-          'Content-Type': 'application/json',
-          'xi-api-key': apiKey
-        },
-        body: JSON.stringify({
-          text: "Kusi!",
-          model_id: "eleven_multilingual_v2",
-          voice_settings: {
-            stability: 0.5,
-            similarity_boost: 0.8,
-            style: 1.0,
-            use_speaker_boost: true
-          }
-        })
-      });
+      // Create a synthetic baby-like sound using Web Audio API
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const sampleRate = audioContext.sampleRate;
+      const duration = 0.8; // 800ms
+      const buffer = audioContext.createBuffer(1, sampleRate * duration, sampleRate);
+      const channelData = buffer.getChannelData(0);
 
-      if (!response.ok) {
-        throw new Error(`ElevenLabs API error: ${response.status}`);
+      // Generate a cute "Kusi" sound pattern
+      for (let i = 0; i < buffer.length; i++) {
+        const t = i / sampleRate;
+        
+        // Create a baby-like voice pattern with multiple harmonics
+        const freq1 = 400 + Math.sin(t * 15) * 100; // Main pitch with vibrato
+        const freq2 = 800 + Math.sin(t * 20) * 80;  // Higher harmonic
+        const freq3 = 1200 + Math.sin(t * 25) * 60; // Even higher harmonic
+        
+        // Envelope for "Ku-si" pattern
+        let envelope = 1;
+        if (t < 0.3) {
+          // "Ku" part
+          envelope = Math.sin(t * Math.PI / 0.3) * 0.8;
+        } else if (t < 0.4) {
+          // Brief pause
+          envelope = 0.1;
+        } else {
+          // "si" part
+          envelope = Math.sin((t - 0.4) * Math.PI / 0.4) * 0.6;
+        }
+        
+        // Mix the frequencies with baby-like timbres
+        const sample = (
+          Math.sin(2 * Math.PI * freq1 * t) * 0.4 +
+          Math.sin(2 * Math.PI * freq2 * t) * 0.3 +
+          Math.sin(2 * Math.PI * freq3 * t) * 0.2 +
+          (Math.random() - 0.5) * 0.1 // Add slight noise for realism
+        ) * envelope;
+        
+        channelData[i] = sample;
       }
 
-      const audioBlob = await response.blob();
+      // Create audio from buffer
+      const source = audioContext.createBufferSource();
+      source.buffer = buffer;
+      
+      // Convert to blob and create audio element
+      const offlineContext = new OfflineAudioContext(1, buffer.length, sampleRate);
+      const offlineSource = offlineContext.createBufferSource();
+      offlineSource.buffer = buffer;
+      offlineSource.connect(offlineContext.destination);
+      offlineSource.start();
+      
+      const renderedBuffer = await offlineContext.startRendering();
+      const audioData = renderedBuffer.getChannelData(0);
+      
+      // Convert to WAV format
+      const wavBuffer = createWavBuffer(audioData, sampleRate);
+      const audioBlob = new Blob([wavBuffer], { type: 'audio/wav' });
       const audioUrl = URL.createObjectURL(audioBlob);
       kushiAudioRef.current = new Audio(audioUrl);
       
       toast.success('Baby voice "Kusi" sound generated! 👶');
     } catch (error) {
       console.error('Error generating Kusi sound:', error);
-      toast.error('Failed to generate baby voice. Check your API key!');
+      toast.error('Failed to generate baby voice, using fallback sound!');
     } finally {
       setIsLoadingSound(false);
     }
-  }, [apiKey]);
+  }, []);
 
-  // Generate sound when API key is provided
-  useEffect(() => {
-    if (apiKey) {
-      generateKushiSound();
+  // Helper function to create WAV buffer
+  const createWavBuffer = (audioData: Float32Array, sampleRate: number) => {
+    const length = audioData.length;
+    const buffer = new ArrayBuffer(44 + length * 2);
+    const view = new DataView(buffer);
+    
+    // WAV header
+    const writeString = (offset: number, string: string) => {
+      for (let i = 0; i < string.length; i++) {
+        view.setUint8(offset + i, string.charCodeAt(i));
+      }
+    };
+    
+    writeString(0, 'RIFF');
+    view.setUint32(4, 36 + length * 2, true);
+    writeString(8, 'WAVE');
+    writeString(12, 'fmt ');
+    view.setUint32(16, 16, true);
+    view.setUint16(20, 1, true);
+    view.setUint16(22, 1, true);
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, sampleRate * 2, true);
+    view.setUint16(32, 2, true);
+    view.setUint16(34, 16, true);
+    writeString(36, 'data');
+    view.setUint32(40, length * 2, true);
+    
+    // Convert float samples to 16-bit PCM
+    let offset = 44;
+    for (let i = 0; i < length; i++) {
+      const sample = Math.max(-1, Math.min(1, audioData[i]));
+      view.setInt16(offset, sample * 0x7FFF, true);
+      offset += 2;
     }
-  }, [apiKey, generateKushiSound]);
+    
+    return buffer;
+  };
+
+  // Generate sound when component mounts
+  useEffect(() => {
+    generateKushiSound();
+  }, [generateKushiSound]);
 
   const playKusiSound = useCallback(() => {
     try {
@@ -395,32 +458,6 @@ export const FlappyBirdGame = () => {
         <p className="text-muted-foreground">The ultimate trolling game! Make them struggle!</p>
       </div>
 
-      {/* ElevenLabs API Key Input */}
-      <Card className="p-4 w-full max-w-md">
-        <h3 className="font-semibold text-primary mb-3">🎵 Baby Voice Setup</h3>
-        <div className="space-y-3">
-          <Input
-            type="password"
-            placeholder="Enter your ElevenLabs API key..."
-            value={apiKey}
-            onChange={(e) => setApiKey(e.target.value)}
-            className="w-full"
-          />
-          <p className="text-xs text-muted-foreground">
-            Get your API key from{' '}
-            <a href="https://elevenlabs.io/" target="_blank" rel="noopener noreferrer" className="text-primary underline">
-              ElevenLabs
-            </a>{' '}
-            for baby voice "Kusi" sound
-          </p>
-          {isLoadingSound && (
-            <p className="text-sm text-accent">Generating baby voice... 👶</p>
-          )}
-          {kushiAudioRef.current && (
-            <p className="text-sm text-green-500">✅ Baby voice ready!</p>
-          )}
-        </div>
-      </Card>
 
       {/* Game Area */}
       <div className="relative">
