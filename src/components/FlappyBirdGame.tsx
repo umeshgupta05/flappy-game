@@ -36,7 +36,7 @@ export const FlappyBirdGame = () => {
   const [highScore, setHighScore] = useState(() => {
     return parseInt(localStorage.getItem('flappyBirdHighScore') || '0');
   });
-  const [apiKey, setApiKey] = useState('');
+  const [apiKey, setApiKey] = useState('sk_a366f67995aa43b942f3ca27c29076a0209a6fcb24cf0344');
   const [isLoadingSound, setIsLoadingSound] = useState(false);
   
   const [bird, setBird] = useState<Bird>({ x: 150, y: GAME_HEIGHT / 2, velocity: 0 });
