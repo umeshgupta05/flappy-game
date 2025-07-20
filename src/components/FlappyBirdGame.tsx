@@ -18,7 +18,7 @@ interface Pipe {
 
 const GAME_WIDTH = 800;
 const GAME_HEIGHT = 600;
-const BIRD_SIZE = 70; // Increased for better visibility
+const BIRD_SIZE = 90; // Increased for better visibility
 const PIPE_WIDTH = 80;
 const PIPE_GAP = 200;
 const GRAVITY = 0.6;
@@ -28,7 +28,7 @@ const PIPE_SPEED = 3;
 export const FlappyBirdGame = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number>();
-  const kushiAudioRef = useRef<HTMLAudioElement | null>(null);
+  const [apiKey, setApiKey] = useState<string>('');
   
   const [gameState, setGameState] = useState<'menu' | 'playing' | 'gameOver'>('menu');
   const [score, setScore] = useState(0);
@@ -36,6 +36,7 @@ export const FlappyBirdGame = () => {
     return parseInt(localStorage.getItem('flappyBirdHighScore') || '0');
   });
   const [isLoadingSound, setIsLoadingSound] = useState(false);
+  const [showKusiAnimation, setShowKusiAnimation] = useState(false);
   
   const [bird, setBird] = useState<Bird>({ x: 150, y: GAME_HEIGHT / 2, velocity: 0 });
   const [pipes, setPipes] = useState<Pipe[]>([]);
@@ -67,177 +68,57 @@ export const FlappyBirdGame = () => {
     gameOverImg.src = '/lovable-uploads/379d2c43-458a-4a74-b0ff-4d27c6829bc1.png';
   }, []);
 
-  // Generate baby voice "Kusi" sound using synthetic audio
-  const generateKushiSound = useCallback(async () => {
-    if (kushiAudioRef.current) {
-      // Use cached audio if already generated
+  // Generate text-to-speech "Kusi" sound using ElevenLabs
+  const playKusiTTS = useCallback(async () => {
+    if (!apiKey) {
+      // Fallback to simple beep if no API key
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+      gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+      
+      oscillator.type = 'sine';
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.1);
       return;
     }
 
-    setIsLoadingSound(true);
     try {
-      // Create a synthetic baby-like sound using Web Audio API
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-      const sampleRate = audioContext.sampleRate;
-      const duration = 0.8; // 800ms
-      const buffer = audioContext.createBuffer(1, sampleRate * duration, sampleRate);
-      const channelData = buffer.getChannelData(0);
-
-      // Generate Jerry-style teasing "Kusi" sound pattern
-      for (let i = 0; i < buffer.length; i++) {
-        const t = i / sampleRate;
-        
-        let freq1, freq2, freq3;
-        let envelope = 0;
-        
-        if (t < 0.4) {
-          // "Ku" part - Jerry's characteristic high-pitched start with downward slide
-          const kuProgress = t / 0.4;
-          
-          // Start high and slide down like Jerry's teasing tone
-          const pitch_slide = 1.0 - kuProgress * 0.3; // Slides down 30%
-          freq1 = (650 * pitch_slide) + Math.sin(kuProgress * Math.PI * 6) * 30; // Jerry's high pitch with vibrato
-          freq2 = (1300 * pitch_slide) + Math.sin(kuProgress * Math.PI * 8) * 25;
-          freq3 = (1950 * pitch_slide) + Math.sin(kuProgress * Math.PI * 10) * 20;
-          
-          // Jerry's characteristic envelope - quick attack, sustained
-          envelope = kuProgress < 0.1 ? kuProgress * 10 : 0.85 * (1 - kuProgress * 0.2);
-        } else if (t < 0.5) {
-          // Brief pause - Jerry's timing
-          envelope = 0.02;
-          freq1 = 500;
-          freq2 = 1000;
-          freq3 = 1500;
-        } else {
-          // "si" part - Jerry's signature upward inflection with smugness
-          const siProgress = (t - 0.5) / 0.3;
-          
-          // Jerry's characteristic upward sweep with attitude
-          const pitch_sweep = siProgress * 0.8 + Math.sin(siProgress * Math.PI * 3) * 0.2;
-          freq1 = 450 + pitch_sweep * 350; // Sweeps up like Jerry's taunting
-          freq2 = 900 + pitch_sweep * 500;
-          freq3 = 1350 + pitch_sweep * 650;
-          
-          // Jerry's smug ending - gets stronger and more confident
-          envelope = Math.sin(siProgress * Math.PI) * 0.9 * (0.8 + siProgress * 0.4);
-          
-          // Add Jerry's characteristic nasal quality at the end
-          if (siProgress > 0.6) {
-            freq1 *= 1 + (siProgress - 0.6) * 0.5;
-            freq2 *= 1 + (siProgress - 0.6) * 0.3;
+      const response = await fetch('https://api.elevenlabs.io/v1/text-to-speech/pFZP5JQG7iQjIQuC4Bku', {
+        method: 'POST',
+        headers: {
+          'Accept': 'audio/mpeg',
+          'Content-Type': 'application/json',
+          'xi-api-key': apiKey,
+        },
+        body: JSON.stringify({
+          text: 'Kusi',
+          model_id: 'eleven_turbo_v2',
+          voice_settings: {
+            stability: 0.5,
+            similarity_boost: 0.8,
+            style: 0.8,
+            use_speaker_boost: true
           }
-        }
-        
-        // Jerry's voice characteristics - nasal, bright, teasing
-        const fundamental = Math.sin(2 * Math.PI * freq1 * t) * 0.45;
-        const nasal_harmonic = Math.sin(2 * Math.PI * freq2 * t) * 0.35; // Jerry's nasal quality
-        const bright_harmonic = Math.sin(2 * Math.PI * freq3 * t) * 0.25; // Brightness
-        
-        // Add Jerry's characteristic mouth noise and sassiness
-        const sassy_noise = Math.sin(2 * Math.PI * freq1 * 2.1 * t) * 0.1;
-        const mouse_squeakiness = (Math.random() - 0.5) * 0.05;
-        
-        const sample = (fundamental + nasal_harmonic + bright_harmonic + sassy_noise + mouse_squeakiness) * envelope;
-        
-        channelData[i] = Math.max(-1, Math.min(1, sample));
-      }
+        }),
+      });
 
-      // Create audio from buffer
-      const source = audioContext.createBufferSource();
-      source.buffer = buffer;
-      
-      // Convert to blob and create audio element
-      const offlineContext = new OfflineAudioContext(1, buffer.length, sampleRate);
-      const offlineSource = offlineContext.createBufferSource();
-      offlineSource.buffer = buffer;
-      offlineSource.connect(offlineContext.destination);
-      offlineSource.start();
-      
-      const renderedBuffer = await offlineContext.startRendering();
-      const audioData = renderedBuffer.getChannelData(0);
-      
-      // Convert to WAV format
-      const wavBuffer = createWavBuffer(audioData, sampleRate);
-      const audioBlob = new Blob([wavBuffer], { type: 'audio/wav' });
-      const audioUrl = URL.createObjectURL(audioBlob);
-      kushiAudioRef.current = new Audio(audioUrl);
-      console.log('Jerry-style teasing "Kusi" sound generated!');
-    } catch (error) {
-      console.error('Error generating Kusi sound:', error);
-    } finally {
-      setIsLoadingSound(false);
-    }
-  }, []);
-
-  // Helper function to create WAV buffer
-  const createWavBuffer = (audioData: Float32Array, sampleRate: number) => {
-    const length = audioData.length;
-    const buffer = new ArrayBuffer(44 + length * 2);
-    const view = new DataView(buffer);
-    
-    // WAV header
-    const writeString = (offset: number, string: string) => {
-      for (let i = 0; i < string.length; i++) {
-        view.setUint8(offset + i, string.charCodeAt(i));
-      }
-    };
-    
-    writeString(0, 'RIFF');
-    view.setUint32(4, 36 + length * 2, true);
-    writeString(8, 'WAVE');
-    writeString(12, 'fmt ');
-    view.setUint32(16, 16, true);
-    view.setUint16(20, 1, true);
-    view.setUint16(22, 1, true);
-    view.setUint32(24, sampleRate, true);
-    view.setUint32(28, sampleRate * 2, true);
-    view.setUint16(32, 2, true);
-    view.setUint16(34, 16, true);
-    writeString(36, 'data');
-    view.setUint32(40, length * 2, true);
-    
-    // Convert float samples to 16-bit PCM
-    let offset = 44;
-    for (let i = 0; i < length; i++) {
-      const sample = Math.max(-1, Math.min(1, audioData[i]));
-      view.setInt16(offset, sample * 0x7FFF, true);
-      offset += 2;
-    }
-    
-    return buffer;
-  };
-
-  // Generate sound when component mounts
-  useEffect(() => {
-    generateKushiSound();
-  }, [generateKushiSound]);
-
-  const playKusiSound = useCallback(() => {
-    try {
-      if (kushiAudioRef.current) {
-        kushiAudioRef.current.currentTime = 0;
-        kushiAudioRef.current.play().catch(console.error);
-      } else {
-        // Fallback to simple beep if no API key
-        const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-        const oscillator = audioContext.createOscillator();
-        const gainNode = audioContext.createGain();
-        
-        oscillator.connect(gainNode);
-        gainNode.connect(audioContext.destination);
-        
-        oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
-        gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
-        
-        oscillator.type = 'sine';
-        oscillator.start(audioContext.currentTime);
-        oscillator.stop(audioContext.currentTime + 0.1);
+      if (response.ok) {
+        const audioBlob = await response.blob();
+        const audioUrl = URL.createObjectURL(audioBlob);
+        const audio = new Audio(audioUrl);
+        audio.play().catch(console.error);
       }
     } catch (error) {
-      console.log('Could not play sound:', error);
+      console.error('Error playing TTS:', error);
     }
-  }, []);
+  }, [apiKey]);
 
   const resetGame = useCallback(() => {
     setBird({ x: 150, y: GAME_HEIGHT / 2, velocity: 0 });
@@ -248,9 +129,9 @@ export const FlappyBirdGame = () => {
   const jump = useCallback(() => {
     if (gameState === 'playing') {
       setBird(prev => ({ ...prev, velocity: JUMP_FORCE }));
-      playKusiSound();
+      playKusiTTS();
     }
-  }, [gameState, playKusiSound]);
+  }, [gameState, playKusiTTS]);
 
   const startGame = useCallback(() => {
     resetGame();
@@ -259,6 +140,8 @@ export const FlappyBirdGame = () => {
 
   const endGame = useCallback(() => {
     setGameState('gameOver');
+    setShowKusiAnimation(true);
+    setTimeout(() => setShowKusiAnimation(false), 6000); // Show animation for 6 seconds
     if (score > highScore) {
       setHighScore(score);
       localStorage.setItem('flappyBirdHighScore', score.toString());
@@ -414,25 +297,27 @@ export const FlappyBirdGame = () => {
       ctx.fillRect(pipe.x - 5, GAME_HEIGHT - pipe.bottomHeight, PIPE_WIDTH + 10, 30);
     });
 
-    // Draw bird with full image (no circular clipping)
+    // Draw bird with maximum visibility - larger size, no clipping
     if (birdImage && birdImage.complete) {
       ctx.save();
       const rotation = Math.min(Math.max(bird.velocity * 0.1, -Math.PI / 6), Math.PI / 4);
       ctx.translate(bird.x + BIRD_SIZE / 2, bird.y + BIRD_SIZE / 2);
       ctx.rotate(rotation);
       
-      // Calculate scale to fit image properly while maintaining aspect ratio
-      const scale = Math.min(BIRD_SIZE / birdImage.width, BIRD_SIZE / birdImage.height);
-      const scaledWidth = birdImage.width * scale;
-      const scaledHeight = birdImage.height * scale;
+      // Add glowing background for maximum visibility
+      ctx.shadowColor = 'rgba(255, 255, 255, 0.8)';
+      ctx.shadowBlur = 15;
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+      ctx.fillRect(-BIRD_SIZE / 2 - 5, -BIRD_SIZE / 2 - 5, BIRD_SIZE + 10, BIRD_SIZE + 10);
+      ctx.shadowBlur = 0;
       
-      // Draw the full image without clipping
+      // Draw the full image without any clipping
       ctx.drawImage(
         birdImage, 
-        -scaledWidth / 2, 
-        -scaledHeight / 2, 
-        scaledWidth, 
-        scaledHeight
+        -BIRD_SIZE / 2, 
+        -BIRD_SIZE / 2, 
+        BIRD_SIZE, 
+        BIRD_SIZE
       );
       
       ctx.restore();
@@ -462,6 +347,25 @@ export const FlappyBirdGame = () => {
 
   return (
     <div className="flex flex-col items-center gap-6 p-6 bg-background min-h-screen">
+      {/* API Key Input */}
+      {!apiKey && (
+        <Card className="p-4 w-full max-w-md">
+          <div className="space-y-3">
+            <h3 className="text-lg font-semibold">ElevenLabs API Key</h3>
+            <p className="text-sm text-muted-foreground">Enter your ElevenLabs API key for girl voice "Kusi" sound:</p>
+            <Input
+              type="password"
+              placeholder="Enter API key..."
+              value={apiKey}
+              onChange={(e) => setApiKey(e.target.value)}
+            />
+            <Button onClick={() => setApiKey(apiKey)} className="w-full">
+              Save API Key
+            </Button>
+          </div>
+        </Card>
+      )}
+
       {/* Game Area */}
       <div className="relative">
         <canvas
@@ -492,6 +396,23 @@ export const FlappyBirdGame = () => {
                   <img src={gameOverImage.src} alt="Game Over" className="w-full h-full object-cover" />
                 </div>
               )}
+              {showKusiAnimation && (
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  {[...Array(8)].map((_, i) => (
+                    <div
+                      key={i}
+                      className="kusi-crazy text-8xl font-bold absolute"
+                      style={{
+                        left: `${Math.random() * 80 + 10}%`,
+                        top: `${Math.random() * 80 + 10}%`,
+                        animationDelay: `${i * 0.2}s`,
+                      }}
+                    >
+                      KUSI
+                    </div>
+                  ))}
+                </div>
+              )}
               <h2 className="text-3xl font-bold text-destructive">Game Over!</h2>
               <p className="text-xl text-foreground">Score: {score}</p>
               <p className="text-lg text-muted-foreground">High Score: {highScore}</p>
@@ -513,9 +434,9 @@ export const FlappyBirdGame = () => {
       {/* Instructions */}
       <div className="text-center text-sm text-muted-foreground max-w-md space-y-2">
         <p>🎮 Click the canvas or press SPACE to jump</p>
-        <p>🎵 Listen for the baby voice "Kusi" sound on each jump</p>
-        <p>😈 Watch them struggle with their own face!</p>
-        <p className="text-primary font-semibold">✨ Target's photo is now clearly visible!</p>
+        <p>🎵 Girl voice "Kusi" sound on each jump</p>
+        <p>🎭 Crazy "KUSI" animations when you lose!</p>
+        <p className="text-primary font-semibold">✨ Photo is now fully visible!</p>
       </div>
     </div>
   );
