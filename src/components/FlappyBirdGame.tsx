@@ -43,19 +43,31 @@ export const FlappyBirdGame = () => {
   const [birdImage, setBirdImage] = useState<HTMLImageElement | null>(null);
   const [gameOverImage, setGameOverImage] = useState<HTMLImageElement | null>(null);
 
-  // Load the uploaded image as bird
+  // Load the uploaded images
   useEffect(() => {
-    const img = new Image();
-    img.onload = () => {
-      setBirdImage(img);
+    // Load bird image
+    const birdImg = new Image();
+    birdImg.onload = () => {
+      setBirdImage(birdImg);
       console.log('Bird image loaded successfully');
       toast.success('Target loaded! Ready to troll! 😈');
     };
-    img.onerror = () => {
+    birdImg.onerror = () => {
       console.error('Failed to load bird image');
       toast.error('Failed to load bird image');
     };
-    img.src = '/lovable-uploads/bd09b71c-cd72-4f8d-bf5b-ad7618882730.png';
+    birdImg.src = '/lovable-uploads/d432625c-0d69-4e11-bfd4-eadd34b0e7c9.png';
+
+    // Load game over image
+    const gameOverImg = new Image();
+    gameOverImg.onload = () => {
+      setGameOverImage(gameOverImg);
+      console.log('Game over image loaded successfully');
+    };
+    gameOverImg.onerror = () => {
+      console.error('Failed to load game over image');
+    };
+    gameOverImg.src = '/lovable-uploads/379d2c43-458a-4a74-b0ff-4d27c6829bc1.png';
   }, []);
 
   // Generate baby voice "Kusi" sound using synthetic audio
@@ -512,7 +524,7 @@ export const FlappyBirdGame = () => {
           <div className="absolute inset-0 bg-background/90 flex items-center justify-center rounded-lg">
             <div className="text-center space-y-4 animate-slide-up">
               {gameOverImage && (
-                <div className="w-32 h-32 mx-auto border-4 border-destructive rounded-full overflow-hidden animate-bounce-in">
+                <div className="w-48 h-48 mx-auto border-4 border-destructive rounded-lg overflow-hidden comedy-peak">
                   <img src={gameOverImage.src} alt="Game Over" className="w-full h-full object-cover" />
                 </div>
               )}

@@ -110,3 +110,36 @@ All colors MUST be HSL.
     @apply bg-background text-foreground;
   }
 }
+
+/* Comedy peak animation for game over meme */
+@keyframes comedy-peak {
+  0% {
+    transform: scale(0) rotate(-180deg);
+    opacity: 0;
+    filter: blur(10px);
+  }
+  30% {
+    transform: scale(1.2) rotate(-10deg);
+    opacity: 0.8;
+    filter: blur(2px);
+  }
+  50% {
+    transform: scale(0.9) rotate(5deg);
+    opacity: 1;
+    filter: blur(0px);
+  }
+  70% {
+    transform: scale(1.1) rotate(-2deg);
+    opacity: 1;
+    filter: brightness(1.2);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+    filter: brightness(1) drop-shadow(0 0 20px rgba(255, 255, 0, 0.5));
+  }
+}
+
+.comedy-peak {
+  animation: comedy-peak 1.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
