@@ -2,7 +2,6 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
-import { toast } from 'sonner';
 
 interface Bird {
   x: number;
@@ -50,11 +49,9 @@ export const FlappyBirdGame = () => {
     birdImg.onload = () => {
       setBirdImage(birdImg);
       console.log('Bird image loaded successfully');
-      toast.success('Target loaded! Ready to troll! 😈');
     };
     birdImg.onerror = () => {
       console.error('Failed to load bird image');
-      toast.error('Failed to load bird image');
     };
     birdImg.src = '/lovable-uploads/d432625c-0d69-4e11-bfd4-eadd34b0e7c9.png';
 
@@ -164,11 +161,9 @@ export const FlappyBirdGame = () => {
       const audioBlob = new Blob([wavBuffer], { type: 'audio/wav' });
       const audioUrl = URL.createObjectURL(audioBlob);
       kushiAudioRef.current = new Audio(audioUrl);
-      
-      toast.success('Jerry-style teasing "Kusi" sound generated! 🐭😏');
+      console.log('Jerry-style teasing "Kusi" sound generated!');
     } catch (error) {
       console.error('Error generating Kusi sound:', error);
-      toast.error('Failed to generate naughty voice, using fallback sound!');
     } finally {
       setIsLoadingSound(false);
     }
@@ -260,7 +255,6 @@ export const FlappyBirdGame = () => {
   const startGame = useCallback(() => {
     resetGame();
     setGameState('playing');
-    toast.success('Game started! Press space or click to jump!');
   }, [resetGame]);
 
   const endGame = useCallback(() => {
@@ -268,7 +262,6 @@ export const FlappyBirdGame = () => {
     if (score > highScore) {
       setHighScore(score);
       localStorage.setItem('flappyBirdHighScore', score.toString());
-      toast.success(`New high score: ${score}! 🏆`);
     }
   }, [score, highScore]);
 
@@ -421,39 +414,19 @@ export const FlappyBirdGame = () => {
       ctx.fillRect(pipe.x - 5, GAME_HEIGHT - pipe.bottomHeight, PIPE_WIDTH + 10, 30);
     });
 
-    // Draw bird with improved visibility and rotation
+    // Draw bird with full image (no circular clipping)
     if (birdImage && birdImage.complete) {
       ctx.save();
       const rotation = Math.min(Math.max(bird.velocity * 0.1, -Math.PI / 6), Math.PI / 4);
       ctx.translate(bird.x + BIRD_SIZE / 2, bird.y + BIRD_SIZE / 2);
       ctx.rotate(rotation);
       
-      // Draw glowing border for maximum visibility
-      ctx.shadowColor = 'hsl(280, 100%, 65%)';
-      ctx.shadowBlur = 10;
-      ctx.beginPath();
-      ctx.arc(0, 0, BIRD_SIZE / 2 + 4, 0, Math.PI * 2);
-      ctx.fillStyle = 'hsl(280, 100%, 65%)';
-      ctx.fill();
-      
-      ctx.shadowBlur = 0;
-      
-      // Draw white border for contrast
-      ctx.beginPath();
-      ctx.arc(0, 0, BIRD_SIZE / 2 + 2, 0, Math.PI * 2);
-      ctx.fillStyle = 'white';
-      ctx.fill();
-      
-      // Draw the image in a circle with proper scaling
-      ctx.beginPath();
-      ctx.arc(0, 0, BIRD_SIZE / 2, 0, Math.PI * 2);
-      ctx.clip();
-      
-      // Calculate scale to fit image properly in circle while maintaining aspect ratio
+      // Calculate scale to fit image properly while maintaining aspect ratio
       const scale = Math.min(BIRD_SIZE / birdImage.width, BIRD_SIZE / birdImage.height);
       const scaledWidth = birdImage.width * scale;
       const scaledHeight = birdImage.height * scale;
       
+      // Draw the full image without clipping
       ctx.drawImage(
         birdImage, 
         -scaledWidth / 2, 
@@ -489,14 +462,6 @@ export const FlappyBirdGame = () => {
 
   return (
     <div className="flex flex-col items-center gap-6 p-6 bg-background min-h-screen">
-      <div className="text-center space-y-2">
-        <h1 className="text-4xl font-bold text-primary animate-pulse-glow">
-          🐦 Trolly Bird 🐦
-        </h1>
-        <p className="text-muted-foreground">The ultimate trolling game! Make them struggle!</p>
-      </div>
-
-
       {/* Game Area */}
       <div className="relative">
         <canvas
@@ -511,7 +476,6 @@ export const FlappyBirdGame = () => {
         {gameState === 'menu' && (
           <div className="absolute inset-0 bg-background/80 flex items-center justify-center rounded-lg">
             <div className="text-center space-y-4 animate-bounce-in">
-              <h2 className="text-3xl font-bold text-primary">Ready to Troll?</h2>
               <p className="text-muted-foreground">Click or press SPACE to start</p>
               <Button onClick={startGame} className="animate-pulse-glow">
                 Start Game
