@@ -510,13 +510,7 @@ export const FlappyBirdGame = () => {
         )}
       </div>
 
-      {/* Instructions */}
-      <div className="text-center text-sm text-muted-foreground max-w-md space-y-2">
-        <p>🎮 Click the canvas or press SPACE to jump</p>
-        <p>🎵 Listen for the baby voice "Kusi" sound on each jump</p>
-        <p>😈 Watch them struggle with their own face!</p>
-        <p className="text-primary font-semibold">✨ Target's photo is now clearly visible!</p>
-      </div>
+      
     </div>
   );
 };
